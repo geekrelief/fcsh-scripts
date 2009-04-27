@@ -1,0 +1,42 @@
+== New README ==
+I've added fcshbuild which takes an as file entry point as an argument along with a config xml file.
+It will automatically startup an fcsh server in the background if it doesn't exist.
+
+Setup a build script like "fcshbuild Main.as config.xml" for fast compilation.
+To kill the server run "fcshkill".
+
+== Original README ==
+this is a collection of bash scripts that wraps fcsh : Flex Compiler SHell
+so that you can compile and run .as or .mxml files from vim.
+tested only on GNU/Linux.
+
+requirements:
+- fcsh ( http://labs.adobe.com/wiki/index.php/Flex_Compiler_Shell )
+- bash
+
+1) tar xvjf fcshtools.tar.bz2
+
+2) cd fcshtools
+
+3) cp *.sh <wherever you want>
+it's recommended to put  the files to $HOME/bin.
+
+4) set FCSH_VIM_ROOT = $<wherever you want>
+if you don't set this environment variable, it'll look at $HOME/bin.
+
+5) edit ~/.vimrc
+if you put the files to $HOME/bin, then add these:
+    autocmd BufNewFile,BufRead *.mxml,*.as :nmap <C-B> :!bash ~/bin/fcshcmp.sh %:p
+    autocmd BufNewFile,BufRead *.mxml,*.as :nmap <C-A> :!bash ~/bin/fcshcmp.sh %:p run
+
+<C-B> will just compile the current file being edited.
+<C-A> will compile and run the .swf on flashplayer.
+
+6) bash $FCSH_VIM_ROOT/fcshserv.sh
+this runs fcsh and creates a named pipe so fcshcmp.sh can send messages to.
+Ctrl+C quits the server.
+
+7) vim hello.as
+
+8) <C-B> or <C-A>
+

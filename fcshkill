@@ -1,0 +1,4 @@
+#/bin/bash
+echo 'shutting down fcsh server'
+echo '-- killall bash'
+killall bash

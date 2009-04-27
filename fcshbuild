@@ -1,0 +1,100 @@
+#!/bin/bash
+#talks to fcshserv to compile a mxml/as file.
+#first parameter should be full path to the file name to be compiled.
+#second parameter is optional. if it is present, flashplayer will launch.
+
+#check usage error.
+if (( $# < 2 )); then 
+    echo >2& "Please supply the entry point filename and config file (e.g. Main.as config.xml)"
+    exit 1
+fi
+
+#get resource.
+if [[ "$FCSH_VIM_ROOT" = "" ]]; then
+    FCSH_VIM_ROOT="$HOME/bin"
+fi
+source "$FCSH_VIM_ROOT/fcshrc.sh"
+
+#variables
+file="`pwd`/$1"
+configfile="`pwd`/$2"
+swf="`pwd`/${file%.*}.swf"
+flashplayer="flashplayer"
+fcshserv="$FCSH_VIM_ROOT/fcshserv.sh"
+
+#check if $file is full path
+if [[ ! "$file" == */* ]]; then
+    echo >2& "$file has to be full path"
+    exit 1
+fi
+
+#check if $configfile is full path
+if [[ ! "$configfile" == */* ]]; then
+    echo >2& "$configfile has to be full path"
+    exit 1
+fi
+
+
+
+#check if server is running.
+if [[ ! -d "$lockdir" ]]; then
+    # then startup the server
+    "$fcshserv" &
+    sleep 2 # give it a bit to startup
+    echo "starting up fcsh server"
+    #echo >&2 "$lockdir does not exist. please execute $FCSH_VIM_ROOT/fcshstart.sh first"
+    #exit 1
+fi
+
+echo "------------------------BEGIN-------------------------------------"
+
+
+
+#get $file's id from the server for next incremental compilation.
+idfile="$lockdir/${file//\//_}"
+echo "idfile: $idfile"
+
+#send message to fcsh
+if [[ -f "$idfile" ]]; then
+    echo "incremental compilation"
+    id=$( head -1 "$idfile" )
+    echo "compile $id" > "$pipein"
+else
+    echo "initial compilation"
+    echo "mxmlc $file -load-config $configfile" > "$pipein"
+fi
+
+#wait until fcsh finishes current compilation.
+until [[ -f "$cmpdone" ]]; do
+    echo -n "."
+    sleep 1
+done
+echo ""
+
+cmpmessage=$( head -1 "$cmpdone" )
+rm -rf "$cmpdone"
+echo  "compilation status: $cmpmessage"
+
+if [[ "$cmpmessage" == "$cmpnice" ]]; then
+
+    #it was initial compilation. store id.
+    if [[ -f "$idcurr" ]]; then
+        id=$( head -1 "$idcurr" )
+        rm -rf "$idcurr"
+        echo "id: $id"
+        echo "$id" > "$idfile"
+    fi
+
+    #user wants to run flashplayer
+    if (( $# >= 3 )); then
+        echo "launching flashplayer."
+        "$flashplayer" "$swf" &
+    fi
+else
+    #compilation was not successful.
+    rm -rf "$idfile"
+    rm -rf "$idcurr"
+    echo "please recompile."
+fi
+
+echo "=============================END================================="
